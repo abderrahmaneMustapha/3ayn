@@ -1,13 +1,22 @@
-html {
-  height: auto;
+html, body, #root {
+  height: 100vh;
+  width: 100%;
+
+  .leaflet-container {
+    width: 100%;
+    height: 100vh;
+  }
 }
 
 body {
-  min-height: 100vh;
+  padding: 0;
+  margin: 0;
+}
+
+body {
   margin: 0;
   font-family: 'Open Sans', 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
   background: #fff;
 }
