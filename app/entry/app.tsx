@@ -1,12 +1,12 @@
 import React from "react";
+import Map from "../map/index";
+
 import './index.scss'
+import 'leaflet/dist/leaflet.css';
 
 const App = () => {
-  console.log("zeazeazeazeazeazeazeaze")
   return (
-    <h1>
-      تطبيق عين يرحب بكم
-    </h1>
+    <Map />
   )
 }
 

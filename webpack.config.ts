@@ -13,7 +13,7 @@ module.exports = {
         options: { presets: ["@babel/env"] }
       },
       {
-        test: /\.s[ac]ss$/i,
+         test: /\.(s(a|c)ss)$/,
         use: [
           // Creates `style` nodes from JS strings
           "style-loader",
@@ -22,6 +22,13 @@ module.exports = {
           // Compiles Sass to CSS
           "sass-loader",
         ],
+      },
+      {
+        test: /\.(css)$/,
+       use: [
+         "style-loader",
+         "css-loader",
+       ],
       },
       {
         test: /\.(png|jpe?g|gif)$/i,
