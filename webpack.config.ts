@@ -1,5 +1,5 @@
-const webpack = require("webpack");
 const path = require("path");
+const webpack = require("webpack");
 
 module.exports = {
   entry: "./app/entry/index.tsx",
@@ -8,9 +8,10 @@ module.exports = {
     rules: [
       {
         test: /\.(js|jsx|tsx|ts)$/,
+
         exclude: /(node_modules|bower_components)/,
         loader: "babel-loader",
-        options: { presets: ["@babel/env"] }
+        options: { presets: ["@babel/env"] },
       },
       {
         test: /\.s[ac]ss$/i,
@@ -27,7 +28,7 @@ module.exports = {
         test: /\.(png|jpe?g|gif)$/i,
         use: [
           {
-            loader: 'file-loader',
+            loader: "file-loader",
           },
         ],
       },
@@ -35,14 +36,15 @@ module.exports = {
         test: /\.(pdf)$/i,
         use: [
           {
-            loader: 'file-loader',
+            loader: "file-loader",
           },
         ],
-      }
-
-    ]
+      },
+    ],
   },
-  resolve: { extensions: ["*", ".js", ".jsx", ".ts", ".tsx", ".json", ".png", ".scss"] },
+  resolve: {
+    extensions: ["*", ".js", ".jsx", ".ts", ".tsx", ".json", ".png", ".scss"],
+  },
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "bundle.js",
@@ -52,5 +54,5 @@ module.exports = {
     static: path.join(__dirname, "assets"),
     port: 5050,
   },
-  plugins: [new webpack.HotModuleReplacementPlugin()]
+  plugins: [new webpack.HotModuleReplacementPlugin()],
 };
