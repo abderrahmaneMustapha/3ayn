@@ -1,8 +1,6 @@
 import React, { useEffect } from 'react'
 import L from 'leaflet';
 
-delete L.Icon.Default.prototype._getIconUrl;
-
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png').default,
     iconUrl: require('leaflet/dist/images/marker-icon.png').default,
@@ -10,7 +8,7 @@ L.Icon.Default.mergeOptions({
 });
 
 const LeafletMap = () => {
-  const position = [35.3451539, 1.337145]
+  const position: [number, number] = [35.3451539, 1.337145]
 
   useEffect(() => {
     var map = L.map('map').setView(position, 13);
