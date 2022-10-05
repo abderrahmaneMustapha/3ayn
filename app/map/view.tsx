@@ -2,9 +2,12 @@ import * as React from 'react';
 import { styled, useTheme, Theme, CSSObject, alpha } from '@mui/material/styles';
 import MuiDrawer from '@mui/material/Drawer';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
-import { Box, InputBase, Toolbar, List, CssBaseline, Typography, Divider, IconButton, ListItem, ListItemButton, ListItemIcon, ListItemText} from '@mui/material'
-import {Search as SearchIcon, Inbox as InboxIcon, Mail as MailIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Menu as MenuIcon} from '@mui/icons-material'
+import {Box, InputBase, Toolbar, List, CssBaseline, Typography, Divider, IconButton, ListItem, ListItemButton, Avatar, ListItemIcon, ListItemText} from '@mui/material'
+import {EventAvailable as Available, EventBusy as Busy, Search as SearchIcon, Inbox as InboxIcon, Mail as MailIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Menu as MenuIcon} from '@mui/icons-material'
 import Map from './map'
+import { Position, WatterPoint } from '../../types/index'
+import { getWatterPoints } from '../utils/firebase/firebase'
+
 const drawerWidth = 240;
 
 const Search = styled('div')(({ theme }) => ({
@@ -118,14 +121,66 @@ const SearchIconWrapper = styled('div')(({ theme }) => ({
   justifyContent: 'center',
 }));
 
-export default function MiniDrawer() {
-  const theme = useTheme();
-  const [open, setOpen] = React.useState(false);
-  const [openSearchResults, setOpenSearchResults] = React.useState(false);
+const options = {
+  enableHighAccuracy: true,
+  timeout: 10000,
+  maximumAge: 1000
+};
 
-  const handleSearchResults = () => {
-    console.log(openSearchResults)
+export default function MiniDrawer() {
+  const theme = useTheme()
+  const [open, setOpen] = React.useState(false)
+  const [openSearchResults, setOpenSearchResults] = React.useState(false)
+  const [WatterPoints, setWatterPoints] = React.useState<WatterPoint[]>([])
+  const [focusedPosition, setFocusedPosition] = React.useState<Position>({ _lat:0, _long:0})
+  const [, forceRender] = React.useState({})
+
+  const handleSearchInput = () => {
     setOpenSearchResults(!openSearchResults)
+  }
+
+  const fetchWatterPoints = () => {
+    getWatterPoints().then((data) => {
+      console.log(data[0].position)
+      const result = data as WatterPoint[]
+      setWatterPoints(result)
+      setFocusedPosition(result[0].position)
+    })
+  }
+
+  const getPositionSuccess = (pos:any)=> {
+    const crd = pos.coords
+    setFocusedPosition({_lat: crd.latitude, _long: crd.longitude})
+  }
+
+  const getPositionError = (err:any)=> {
+    console.warn(`ERROR(${err.code}): ${err.message}`);
+  }
+
+
+  React.useEffect(() => {
+    fetchWatterPoints()
+    navigator.geolocation.getCurrentPosition(getPositionSuccess, getPositionError, options)
+  }, [])
+
+  const handleUpdateFocusedPos = (position: Position) => {
+    setFocusedPosition(position)
+    forceRender({})
+  }
+
+  const handleSearchResult = (query: string) => {
+    if (!query) {
+      fetchWatterPoints()
+    } else {
+      let newWatterPoints = WatterPoints?.filter((WatterPoint) => {
+        return WatterPoint.title.includes(query) || WatterPoint.description?.includes(query)
+      })
+      setWatterPoints(newWatterPoints)
+      forceRender({})
+      if (newWatterPoints) {
+        handleUpdateFocusedPos(newWatterPoints[0].position)
+      }
+    }
   }
 
   const handleDrawerOpen = () => {
@@ -135,7 +190,7 @@ export default function MiniDrawer() {
   const handleDrawerClose = () => {
     setOpen(false);
   };
-
+  if (!WatterPoints || !focusedPosition)  return (<div> aych</div>)
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
@@ -161,7 +216,8 @@ export default function MiniDrawer() {
               <SearchIcon />
             </SearchIconWrapper>
             <StyledInputBase
-              onClick={handleSearchResults}
+              onClick={handleSearchInput}
+              onChange={(event) => handleSearchResult(event.target.value)}
               placeholder="ابحث..."
               inputProps={{ 'aria-label': 'search' }}
             />
@@ -201,23 +257,92 @@ export default function MiniDrawer() {
         </List>
       </Drawer>
 
-      <Box component="main" sx={{flexGrow: 1, p: 3}}>
+      <Box component="main" sx={{flexGrow: 1, p: 3, backgroundColor: '#FBFBFB'}}>
         <DrawerHeader />
-        <Box component="main" sx={{display: 'flex'}}>
+        <Box
+          component="div"
+          sx={{
+            display: 'flex',
+            maxHeight: window.innerHeight,
+            minHeight: window.innerHeight,
+            backgroundColor: '#FBFBFB'
+          }}
+        >
           <Box
             component="div"
-            sx={{flexGrow: 3}}
+            sx={{width: 3.2/8, backgroundColor: '#FBFBFB'}}
           >
-            zerazeazeaze
+            <Items items={WatterPoints} handleUpdateFocusedPos={handleUpdateFocusedPos}/>
           </Box>
           <Box
             component="div"
-            sx={{flexGrow: 3}}
+            sx={{width: 4.8/8}}
           >
-            <Map />
+            <Map items={WatterPoints} focusedPosition={focusedPosition}/>
           </Box>
         </Box>
       </Box>
     </Box>
+  );
+}
+
+interface ItemsProps {
+  items: WatterPoint[]
+  handleUpdateFocusedPos: (position: Position) => void
+}
+
+function Items({items, handleUpdateFocusedPos}: ItemsProps) {
+  const [currentTime, _] = React.useState<number>(new Date().getHours() + 1)
+
+  const isOpen = (item: WatterPoint) => {
+    return currentTime >= item.open.from.js && currentTime <= item.open.to.js
+  }
+
+  return (
+    <List sx={{ width: '100%', overflow: 'auto', maxHeight: 1 ,bgcolor: 'background.paper' }}>
+    {items.map((item) => (
+      <React.Fragment key={item.id}>
+      <ListItemButton onClick={()=> {
+        console.log(item.position)
+        handleUpdateFocusedPos(item.position)
+      }}>
+          {isOpen(item) ?
+            <Avatar sx={{backgroundColor: '#4CDFAD'}}>
+              <Available />
+            </Avatar>:
+            <Avatar sx={{backgroundColor: '#F0204E'}}>
+              <Busy />
+            </Avatar>
+          }
+        <ListItemText
+          sx={{marginInline: '0.5em'}}
+          primary={
+            <Typography
+                sx={{ display: 'inline', fontWeight: 'bold' }}
+                component="p"
+              >
+                {item.title}
+              </Typography>
+
+          }
+          secondary={
+            <React.Fragment>
+              <Typography
+                sx={{ display: 'inline' }}
+                component="span"
+                variant="body2"
+                color="text.primary"
+              >
+                {`مفتوح على الساع ${item.open.from.ar}`}
+              </Typography>
+              {` — ${item.address}`}
+            </React.Fragment>
+          }
+        />
+      </ListItemButton>
+      <Divider variant="inset" component="li" />
+      </React.Fragment>
+    ))}
+    </List>
   );
 }

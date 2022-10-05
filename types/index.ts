@@ -1,14 +1,18 @@
-type WaterPoint =  {
+type WatterPoint =  {
   id: number,
-  name: string,
+  img: string,
+  open: {from: {ar: string, js: number}, to: {ar: string, js: number}},
+  address: string,
+  stars: number,
+  title: string,
   description: string,
   position: Position,
-  photos: Photo[],
-  activeTime: ActiveTime,
-  created_by: User,
+  photos?: Photo[],
+  activeTime?: ActiveTime,
+  created_by?: User,
 }
 
-type Position = [number, number]
+type Position = {_lat: number, _long: number}
 
 type Photo = {
   title?: string,
@@ -27,4 +31,4 @@ type User =  {
   name: string,
 }
 
-export { ActiveTime, Photo, Position, User, WaterPoint }
+export { ActiveTime, Photo, Position, User, WatterPoint }

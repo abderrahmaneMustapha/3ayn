@@ -1,6 +1,6 @@
-import React, { CSSProperties, useEffect } from 'react'
+import React, { useEffect } from 'react'
 import L from 'leaflet';
-import { WaterPoint, Position, Photo, ActiveTime, User } from '../../types/index'
+import { WatterPoint, Position } from '../../types/index'
 
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: require('leaflet/dist/images/marker-icon-2x.png').default,
@@ -8,72 +8,95 @@ L.Icon.Default.mergeOptions({
     shadowUrl: require('leaflet/dist/images/marker-shadow.png').default
 });
 
-const photos: Photo[] = [
-  {
-    title: "photo 1",
-    src: "azeza",
-    description: "arr",
-  }
-]
-
-const activeTime: ActiveTime = {
-  closeAt: new  Date(12, 12, 2021),
-  openAt: new Date(11, 11, 2021)
+interface mapProps {
+  items: WatterPoint[],
+  focusedPosition: Position
 }
 
-const user: User =  {
-  id: 1,
-  name: "1212"
-}
+let greenIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
 
-const waterPoints: WaterPoint[] = [
-  {
-     id: 0,
-     name: "Watter point",
-     description: "Watter point",
-     position: [33.232, 1.444],
-     photos: photos,
-     activeTime: activeTime,
-     created_by: user,
-  },
-  {
-    id: 2,
-    name: "Watter point aych hayf",
-    description: "Watter point aych hayft",
-    position: [33.3434, 2.444],
-    photos: photos,
-    activeTime: activeTime,
-    created_by: user,
+let redIcon = new L.Icon({
+  iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+const LeafletMap = ({ items, focusedPosition }: mapProps) => {
+  const [currentTime, _] = React.useState<number>(new Date().getHours() + 1)
+
+  const isOpen = (item: WatterPoint) => {
+    return currentTime >= item.open.from.js && currentTime <= item.open.to.js
   }
-]
 
-const LeafletMap = () => {
-  const position: Position = [35.3451539, 1.337145]
+  const popUpContent = (img: string) => {
+    return `
+      <img
+        src='${img}?w=150&amp;fit=crop&amp;auto=format'
+        srcset='${img}?w=150fit=crop&amp;auto=format&amp;dpr=2x'
+        alt="عين الجامعة  , بجانب المسجد" loading="lazy" class="MuiImageListItem-img"
+      >
+      <div>
+        <div>
+          <div class="leaflet-popup-content-header" >
+            <h3>عين الجامعة  , بجانب المسجد</h3>
+            <span>5</span>
+            </div>
+          </div>
+          <div class="leaflet-popup-content-body">
+            <div>
+              <span >9 صباحا - 10 مساء</span>
+              <span>.</span>
+              <span>محمد جهلان تيارت, تيارت</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `
+  }
 
   useEffect(() => {
-    var map = L.map('map').setView(position, 13);
+    const  map = L.map('map')
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
-    waterPoints.forEach((waterPoint) => {
-      L.marker(waterPoint.position).addTo(map)
-      .bindPopup(waterPoint.description)
-      .openPopup();
+    items.forEach((item) => {
+      let marker = undefined
+      const position = [item.position._lat, item.position._long]
+      if (isOpen(item)) {
+        marker = L.marker(position, {icon: greenIcon})
+      } else {
+        marker = L.marker(position, {icon: redIcon})
+      }
+
+      marker.addTo(map).bindPopup(popUpContent(item.img)).openPopup();
     })
+
+    map.setView([focusedPosition._lat, focusedPosition._long], 20)
 
     return () => {
       map.remove();
     }
-  }, [])
+  }, [focusedPosition, items])
 
   return <div id="map" ></div>
 }
 
-const Map = () => {
+
+const Map = ({ items, focusedPosition }: mapProps) => {
   return (
-    <LeafletMap />
+    <LeafletMap items={items} focusedPosition={focusedPosition} />
   )
 }
 
