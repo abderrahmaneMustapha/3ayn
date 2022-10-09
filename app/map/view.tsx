@@ -2,8 +2,12 @@ import * as React from 'react';
 import { styled, useTheme, Theme, CSSObject, alpha } from '@mui/material/styles';
 import MuiDrawer from '@mui/material/Drawer';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
-import {Box, InputBase, Toolbar, List, CssBaseline, Typography, Divider, IconButton, ListItem, ListItemButton, Avatar, ListItemIcon, ListItemText} from '@mui/material'
-import {EventAvailable as Available, EventBusy as Busy, Search as SearchIcon, Inbox as InboxIcon, Mail as MailIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Menu as MenuIcon} from '@mui/icons-material'
+import {Button, TextField, Dialog, OutlinedInput, DialogActions,DialogTitle, DialogContent ,useMediaQuery, Box, InputBase, Toolbar, List, CssBaseline, Typography, Divider, IconButton, ListItem, ListItemButton, Avatar, ListItemIcon, ListItemText, FormControl, Input, InputLabel, Stack} from '@mui/material'
+import {AddLocationAlt as AddLocationAltIcon ,EventAvailable as Available, EventBusy as Busy, Search as SearchIcon, Inbox as InboxIcon, Mail as MailIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Menu as MenuIcon} from '@mui/icons-material'
+import { TimePicker } from '@mui/x-date-pickers/TimePicker'
+import { AdapterMoment } from '@mui/x-date-pickers/AdapterMoment';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import  { Moment } from 'moment';
 import Map from './map'
 import { Position, WatterPoint } from '../../types/index'
 import { getWatterPoints } from '../utils/firebase/firebase'
@@ -129,7 +133,9 @@ const options = {
 
 export default function MiniDrawer() {
   const theme = useTheme()
+  const icons = [<InboxIcon />, <AddLocationAltIcon />, <MailIcon />]
   const [open, setOpen] = React.useState(false)
+  const [openPositionModal, setOpenPositionModal] = React.useState(false)
   const [openSearchResults, setOpenSearchResults] = React.useState(false)
   const [WatterPoints, setWatterPoints] = React.useState<WatterPoint[]>([])
   const [focusedPosition, setFocusedPosition] = React.useState<Position>({ _lat:0, _long:0})
@@ -141,10 +147,9 @@ export default function MiniDrawer() {
 
   const fetchWatterPoints = () => {
     getWatterPoints().then((data) => {
-      console.log(data[0].position)
       const result = data as WatterPoint[]
       setWatterPoints(result)
-      setFocusedPosition(result[0].position)
+      navigator.geolocation.getCurrentPosition(getPositionSuccess, getPositionError, options)
     })
   }
 
@@ -157,10 +162,8 @@ export default function MiniDrawer() {
     console.warn(`ERROR(${err.code}): ${err.message}`);
   }
 
-
   React.useEffect(() => {
     fetchWatterPoints()
-    navigator.geolocation.getCurrentPosition(getPositionSuccess, getPositionError, options)
   }, [])
 
   const handleUpdateFocusedPos = (position: Position) => {
@@ -190,7 +193,17 @@ export default function MiniDrawer() {
   const handleDrawerClose = () => {
     setOpen(false);
   };
-  if (!WatterPoints || !focusedPosition)  return (<div> aych</div>)
+
+  const handleAddPointModal = () => {
+    setOpenPositionModal(!openPositionModal)
+  }
+
+  const handleSavePointModal = () => {
+    setOpenPositionModal(!openPositionModal)
+  }
+
+  if (!WatterPoints || !focusedPosition)  return (<div>Loading ...!</div>)
+
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
@@ -232,7 +245,7 @@ export default function MiniDrawer() {
         </DrawerHeader>
         <Divider />
         <List>
-          {['الصفحة الرئيسية', 'تواصل معنا'].map((text, index) => (
+          {['الصفحة الرئيسية', 'اقترح عينا جديدة', 'تواصل معنا'].map((text, index) => (
             <ListItem key={text} disablePadding sx={{ display: 'block' }}>
               <ListItemButton
                 sx={{
@@ -240,6 +253,7 @@ export default function MiniDrawer() {
                   justifyContent: open ? 'initial' : 'center',
                   px: 2.5,
                 }}
+                onClick={handleAddPointModal}
               >
                 <ListItemIcon
                   sx={{
@@ -248,7 +262,7 @@ export default function MiniDrawer() {
                     justifyContent: 'center',
                   }}
                 >
-                  {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
+                   {icons[index]}
                 </ListItemIcon>
                 <ListItemText primary={text} sx={{ opacity: open ? 1 : 0 }} />
               </ListItemButton>
@@ -282,6 +296,7 @@ export default function MiniDrawer() {
           </Box>
         </Box>
       </Box>
+      <NewPointDialog open={openPositionModal} handleCancel={handleAddPointModal} handleSave={handleSavePointModal} />
     </Box>
   );
 }
@@ -301,9 +316,8 @@ function Items({items, handleUpdateFocusedPos}: ItemsProps) {
   return (
     <List sx={{ width: '100%', overflow: 'auto', maxHeight: 1 ,bgcolor: 'background.paper' }}>
     {items.map((item) => (
-      <React.Fragment key={item.id}>
-      <ListItemButton onClick={()=> {
-        console.log(item.position)
+      <React.Fragment key={`${item.id}-fragment`}>
+      <ListItemButton key={item.id} onClick={()=> {
         handleUpdateFocusedPos(item.position)
       }}>
           {isOpen(item) ?
@@ -340,9 +354,126 @@ function Items({items, handleUpdateFocusedPos}: ItemsProps) {
           }
         />
       </ListItemButton>
-      <Divider variant="inset" component="li" />
+      <Divider variant="inset" component="li"  key={`${item.id}-divider`}/>
       </React.Fragment>
     ))}
     </List>
   );
+}
+
+interface NewPointDialogProps {
+  open: boolean
+  handleCancel: () => void
+  handleSave: () => void
+}
+
+const defaultWatterPoint: WatterPoint = {
+  id: 0,
+  /* TODO: add the possibility to have multi active Times */
+  open: {from: {ar: "", js: 0}, to: {ar: "", js: 0}},
+  address: "",
+  stars: 0,
+  title: "",
+  description: "",
+  position: {_lat: 0, _long: 0},
+}
+
+const  NewPointDialog = ({open, handleCancel, handleSave}: NewPointDialogProps) => {
+  const [openTime, setOpenTime] = React.useState<Moment | null>(null);
+  const [closeTime, setCloseTime] = React.useState<Moment | null>(null);
+  const [watterPoint, setWatterPoint] = React.useState<WatterPoint>(defaultWatterPoint)
+
+  const handleOpenTime = (newValue: Moment | null) => {
+    handleTimeDataChange('open', newValue)
+    setOpenTime(newValue)
+    console.log(watterPoint)
+  };
+
+  const handleCloseTime = (newValue: Moment | null) => {
+    handleTimeDataChange('close', newValue)
+    setCloseTime(newValue);
+  };
+
+  const handleDataChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    let name = event.target.name
+    let value = event.target.value
+    let data = watterPoint as any
+
+    if (['title', 'address', 'description'].includes(name)) {
+      data[name] = value
+    } else if (name.includes('position')) {
+        let key = name.split('.')[1]
+        data['position'][key] = Number(value)
+    }
+    setWatterPoint(data as WatterPoint)
+    console.log(watterPoint)
+  }
+
+  const handleTimeDataChange = (state: string, value: Moment | null) => {
+    let type = value?.format('A') === 'AM' ? 'صباحا' : 'امساء'
+    let data = watterPoint as any
+    data[state].js = value?.format('kk')
+    data[state].ar =  value?.format('hh') + '' + type
+    setWatterPoint(data as WatterPoint)
+  }
+
+  return (
+    <LocalizationProvider dateAdapter={AdapterMoment}>
+    <Dialog
+      fullWidth={true}
+      maxWidth="md"
+      open={open}
+    >
+    <DialogTitle>
+      <Typography fontSize={40}>
+        اقترح عينا جديدة
+      </Typography>
+    </DialogTitle>
+    <DialogContent>
+
+      <Stack sx={{padding: "2em"}}direction="column" spacing={4} >
+        <FormControl variant="standard">
+          <TextField onChange={handleDataChange} name="title" label="اسم العين" placeholder="اقترح للعين اسما" />
+        </FormControl>
+        <FormControl fullWidth>
+          <TextField onChange={handleDataChange} name="address" label="العنوان" placeholder="مثال: اسم الحي او الشارع ، اسم الولاية ، اسم المدينة" />
+        </FormControl>
+        <div>
+          <InputLabel></InputLabel>
+          <FormControl>
+            <TimePicker
+              label="وقت الافتتاح"
+              value={openTime}
+              onChange={handleOpenTime}
+              renderInput={(params) => <TextField name="open" {...params} />}
+            />
+          </FormControl>
+          <FormControl>
+            <TimePicker
+              label="وقت الاغلاق"
+              value={closeTime}
+              onChange={handleCloseTime}
+              renderInput={(params) => <TextField name="close" {...params} />}
+            />
+          </FormControl>
+        </div>
+        <div>
+          <FormControl>
+            <TextField  type='number' onChange={handleDataChange} name="position._lat" label="الموقع على خط العرض"  placeholder="(lat)الموقع على خط العرض" />
+          </FormControl>
+          <FormControl>
+            <TextField type='number' onChange={handleDataChange} name="position._long" label="الموقع على خط الطول" placeholder="(long)الموقع على خط الطول" />
+          </FormControl>
+        </div>
+        <FormControl fullWidth>
+          <TextField onChange={handleDataChange} multiline={true} name="description" label="معلومات اخرى" placeholder="هل لديك اي معلومات او ملاحظات حول هذه العين" />
+        </FormControl>
+      </Stack>
+
+    </DialogContent>
+    <DialogActions>
+      <Button onClick={handleCancel}>الغاء</Button>
+      <Button variant="contained"  size="large" autoFocus type="submit" onClick={handleSave}>حفظ</Button>
+    </DialogActions>
+  </Dialog> </LocalizationProvider>)
 }

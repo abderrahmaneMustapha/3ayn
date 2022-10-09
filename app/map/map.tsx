@@ -38,25 +38,20 @@ const LeafletMap = ({ items, focusedPosition }: mapProps) => {
     return currentTime >= item.open.from.js && currentTime <= item.open.to.js
   }
 
-  const popUpContent = (img: string) => {
+  const popUpContent = (item: WatterPoint) => {
     return `
-      <img
-        src='${img}?w=150&amp;fit=crop&amp;auto=format'
-        srcset='${img}?w=150fit=crop&amp;auto=format&amp;dpr=2x'
-        alt="عين الجامعة  , بجانب المسجد" loading="lazy" class="MuiImageListItem-img"
-      >
       <div>
         <div>
           <div class="leaflet-popup-content-header" >
-            <h3>عين الجامعة  , بجانب المسجد</h3>
-            <span>5</span>
+            <h3>${item.title}</h3>
+            <span>${item.stars}</span>
             </div>
           </div>
           <div class="leaflet-popup-content-body">
             <div>
-              <span >9 صباحا - 10 مساء</span>
+              <span>${item.open.from.ar} - ${item.open.to.ar}</span>
               <span>.</span>
-              <span>محمد جهلان تيارت, تيارت</span>
+              <span>${item.address}</span>
             </div>
           </div>
         </div>
@@ -80,10 +75,10 @@ const LeafletMap = ({ items, focusedPosition }: mapProps) => {
         marker = L.marker(position, {icon: redIcon})
       }
 
-      marker.addTo(map).bindPopup(popUpContent(item.img)).openPopup();
+      marker.addTo(map).bindPopup(popUpContent(item)).openPopup();
     })
 
-    map.setView([focusedPosition._lat, focusedPosition._long], 20)
+    map.setView([focusedPosition._lat, focusedPosition._long], 15)
 
     return () => {
       map.remove();

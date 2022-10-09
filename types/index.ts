@@ -1,6 +1,7 @@
-type WatterPoint =  {
+interface WatterPoint {
   id: number,
-  img: string,
+  img?: string,
+  /* TODO: add the possibility to have multi active Times */
   open: {from: {ar: string, js: number}, to: {ar: string, js: number}},
   address: string,
   stars: number,
@@ -8,27 +9,20 @@ type WatterPoint =  {
   description: string,
   position: Position,
   photos?: Photo[],
-  activeTime?: ActiveTime,
   created_by?: User,
 }
 
-type Position = {_lat: number, _long: number}
+interface Position {_lat: number, _long: number}
 
-type Photo = {
+interface Photo {
   title?: string,
   src: string,
   description?: string,
 }
 
-/* TODO: add the possibility to have multi active Times */
-type ActiveTime =  {
-  openAt: Date,
-  closeAt: Date,
-}
-
-type User =  {
+interface User {
   id: number,
   name: string,
 }
 
-export { ActiveTime, Photo, Position, User, WatterPoint }
+export { Photo, Position, User, WatterPoint }
